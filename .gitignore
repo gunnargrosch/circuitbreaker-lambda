@@ -1,0 +1,14 @@
+.vs/
+.vscode/
+.serverless/
+.aws-sam/
+node_modules/
+/samconfig.toml
+/index.js
+/serverless.yml
+/template.yaml
+example/.vscode/
+example/.serverless/
+example/.aws-sam/
+example/node_modules/
+example/samconfig.toml

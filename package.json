@@ -1,0 +1,35 @@
+{
+  "name": "circuitbreaker-lambda",
+  "version": "0.0.1",
+  "description": "Module for circuit breaker pattern in AWS Lambda",
+  "main": "./lib/circuitbreaker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunnargrosch/circuitbreaker-lambda.git"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "circuitbreaker",
+    "fallback"
+  ],
+  "author": "Gunnar Grosch",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gunnargrosch/circuitbreaker-lambda/issues"
+  },
+  "homepage": "https://github.com/gunnargrosch/circuitbreaker-lambda#readme",
+  "devDependencies": {
+    "aws-sdk": "^2.761.0",
+    "eslint": "^7.10.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1"
+  },
+  "dependencies": {}
+}

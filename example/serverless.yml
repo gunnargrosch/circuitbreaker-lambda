@@ -1,0 +1,50 @@
+service: circuitbreaker-lambda-example
+frameworkVersion: ">=1.65.0"
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 128
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/'
+            - Ref: circuitbreakerLambdaTable
+
+functions:
+  circuitbreakerLambdaFunction:
+    handler: index.handler
+    timeout: 3
+    environment:
+      CIRCUITBREAKER_TABLE:
+        Ref: circuitbreakerLambdaTable
+    events:
+      - httpApi:
+          method: GET
+          path: /circuitbreakerLambda
+
+resources:
+  Resources:
+    circuitbreakerLambdaTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+package:
+  exclude:
+    - ./client/**
+    - .vscode
+    - .serverless

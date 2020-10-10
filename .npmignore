@@ -1,0 +1,11 @@
+.vscode/
+.serverless
+.aws-sam
+node_modules/
+example/
+.editorconfig
+.eslintrc.js
+samconfig.toml
+index.js
+serverless.yml
+template.yaml

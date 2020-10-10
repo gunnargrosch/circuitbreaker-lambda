@@ -1,0 +1,8 @@
+{
+  "name": "circuitbreaker-lambda-example",
+  "version": "0.0.0",
+  "description": "",
+  "dependencies": {
+    "circuitbreaker-lambda": ""
+  }
+}

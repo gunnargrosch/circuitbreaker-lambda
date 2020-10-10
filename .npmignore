@@ -3,6 +3,7 @@
 .aws-sam
 node_modules/
 example/
+img/
 .editorconfig
 .eslintrc.js
 samconfig.toml

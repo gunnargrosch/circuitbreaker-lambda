@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  circuitbreaker-lambda-example
+
+  SAM Template for circuitbreaker-lambda-example
+  
+Globals:
+  Function:
+    Timeout: 3
+    Environment:
+      Variables:
+        CIRCUITBREAKER_TABLE:
+          !Select [1, !Split ['/', !GetAtt circuitbreakerLambdaTable.Arn]]
+
+Resources:
+  circuitbreakerLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: 
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Select [1, !Split ['/', !GetAtt circuitbreakerLambdaTable.Arn]]
+      Events:
+        circuitbreakerLambda:
+          Type: HttpApi
+          Properties:
+            Path: /circuitbreakerLambda
+            Method: get
+  circuitbreakerLambdaTable:
+    Type: 'AWS::Serverless::SimpleTable'
+    DeletionPolicy: Delete
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+Outputs:
+  circuitbreakerLambdaFunction:
+    Description: "circuitbreakerLambdaFunction ARN"
+    Value: !GetAtt circuitbreakerLambdaFunction.Arn

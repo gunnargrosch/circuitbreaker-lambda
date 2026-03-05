@@ -158,33 +158,9 @@ aws lambda publish-layer-version \
 
 ### 3. Add the layer and environment variable
 
-Add the layer ARN to your function and set `CIRCUITBREAKER_TABLE`.
+Add the layer ARN to your function and set `CIRCUITBREAKER_TABLE`. The extension binds its HTTP server and registers with the Lambda Extensions API during INIT -- Lambda won't invoke your handler until the extension is ready.
 
-### 4. Wait for readiness on cold start
-
-The extension writes `/tmp/.circuitbreaker-lambda-ready` when its HTTP server is ready. On cold starts, your handler may run before the extension has bound its port. Check for this file before making the first HTTP call:
-
-```js
-// Node.js — poll up to 5 seconds (100 × 50ms)
-import { existsSync } from "node:fs";
-for (let i = 0; i < 100; i++) {
-  if (existsSync("/tmp/.circuitbreaker-lambda-ready")) break;
-  await new Promise((r) => setTimeout(r, 50));
-}
-```
-
-```python
-# Python — poll up to 5 seconds (100 × 50ms)
-import os, time
-for _ in range(100):
-    if os.path.exists("/tmp/.circuitbreaker-lambda-ready"):
-        break
-    time.sleep(0.05)
-```
-
-This only needs to run once per cold start. See the `examples/layer/` directory for complete examples.
-
-### 5. Call the local HTTP API from your function
+### 4. Call the local HTTP API from your function
 
 The extension listens on `http://127.0.0.1:4243` (configurable via `CIRCUITBREAKER_PORT`).
 
@@ -241,7 +217,7 @@ The layer works with all supported Lambda runtimes:
 
 Both x86_64 and arm64 architectures are supported.
 
-> **Memory and cold starts:** Lambda allocates CPU proportionally to memory. At the default 128MB, the extension's cold start (AWS SDK initialization, TLS handshake, credential resolution) is CPU-starved and adds several seconds. At 512MB+, the extension cold start overhead drops to ~400ms and warm invocation overhead is under 10ms. This applies to both the npm package and the layer, but is more pronounced with the layer since it runs a separate process.
+> **Memory and cold starts:** Lambda allocates CPU proportionally to memory. At the default 128MB, cold starts are CPU-starved (AWS SDK initialization, TLS handshake, credential resolution). At 512MB, the layer adds ~350ms to cold start and warm invocations have near-zero overhead. The npm package adds ~50ms to cold start at 512MB. Both paths benefit from higher memory settings.
 
 ## Circuit Breaker States
 

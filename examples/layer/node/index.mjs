@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 
@@ -8,15 +7,6 @@ const CONTROL_KEY = "_downstream_healthy";
 const CIRCUITBREAKER_PORT = process.env.CIRCUITBREAKER_PORT || "4243";
 const CIRCUITBREAKER_URL = `http://127.0.0.1:${CIRCUITBREAKER_PORT}`;
 const CIRCUIT_ID = process.env.AWS_LAMBDA_FUNCTION_NAME || "default";
-
-let extensionReady = false;
-
-async function waitForExtension() {
-  for (let i = 0; i < 100; i++) {
-    if (existsSync("/tmp/.circuitbreaker-lambda-ready")) return;
-    await new Promise((r) => setTimeout(r, 50));
-  }
-}
 
 async function callDownstream() {
   const result = await ddb.send(
@@ -29,11 +19,6 @@ async function callDownstream() {
 }
 
 export const handler = async (event) => {
-  if (!extensionReady) {
-    await waitForExtension();
-    extensionReady = true;
-  }
-
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath ?? "/";
 

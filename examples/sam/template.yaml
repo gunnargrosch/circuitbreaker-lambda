@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  circuitbreaker-lambda example — deploy and test the full circuit breaker
+  lifecycle with a toggleable downstream service.
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: nodejs24.x
+    MemorySize: 512
+    Environment:
+      Variables:
+        CIRCUITBREAKER_TABLE: !Ref CircuitBreakerTable
+
+Resources:
+  CircuitBreakerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: index.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
+      Events:
+        Call:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: get
+        Status:
+          Type: HttpApi
+          Properties:
+            Path: /status
+            Method: get
+        Toggle:
+          Type: HttpApi
+          Properties:
+            Path: /toggle
+            Method: post
+
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  ApiEndpoint:
+    Description: Base API URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  HowToTest:
+    Description: Testing instructions
+    Value: !Sub >-
+      1. curl ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
+      (should succeed)
+      2. curl -X POST ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/toggle
+      (makes downstream unhealthy)
+      3. curl ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
+      (repeat — watch failures, then circuit opens and returns fallback)
+      4. curl ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/status
+      (see OPEN state)
+      5. curl -X POST ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/toggle
+      (makes downstream healthy again)
+      6. Wait 15 seconds for the circuit timeout
+      7. curl ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
+      (circuit transitions HALF -> CLOSED as requests succeed)

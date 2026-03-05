@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  circuitbreaker-lambda layer example — deploy and test the full circuit breaker
+  lifecycle with a toggleable downstream service using any runtime.
+
+Resources:
+  CircuitBreakerLayerX86:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: circuitbreaker-lambda-x86-64
+      Description: circuitbreaker-lambda extension layer (x86_64)
+      ContentUri: ../../layer/dist/x86_64/
+      CompatibleRuntimes:
+        - nodejs24.x
+        - nodejs22.x
+        - nodejs20.x
+        - python3.14
+        - python3.13
+        - python3.12
+        - python3.11
+        - python3.10
+        - java25
+        - java21
+        - java17
+        - java11
+        - java8.al2
+        - dotnet10
+        - dotnet8
+        - ruby3.4
+        - ruby3.3
+        - ruby3.2
+        - provided.al2023
+        - provided.al2
+      CompatibleArchitectures:
+        - x86_64
+
+  CircuitBreakerLayerArm64:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: circuitbreaker-lambda-arm64
+      Description: circuitbreaker-lambda extension layer (arm64)
+      ContentUri: ../../layer/dist/aarch64/
+      CompatibleRuntimes:
+        - nodejs24.x
+        - nodejs22.x
+        - nodejs20.x
+        - python3.14
+        - python3.13
+        - python3.12
+        - python3.11
+        - python3.10
+        - java25
+        - java21
+        - java17
+        - java11
+        - java8.al2
+        - dotnet10
+        - dotnet8
+        - ruby3.4
+        - ruby3.3
+        - ruby3.2
+        - provided.al2023
+        - provided.al2
+      CompatibleArchitectures:
+        - arm64
+
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ExampleNodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs24.x
+      CodeUri: node/
+      Timeout: 10
+      MemorySize: 512
+      Layers:
+        - !Ref CircuitBreakerLayerX86
+      Environment:
+        Variables:
+          CIRCUITBREAKER_TABLE: !Ref CircuitBreakerTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
+      Events:
+        Call:
+          Type: HttpApi
+          Properties:
+            Path: /node
+            Method: get
+        Status:
+          Type: HttpApi
+          Properties:
+            Path: /node/status
+            Method: get
+        Toggle:
+          Type: HttpApi
+          Properties:
+            Path: /node/toggle
+            Method: post
+
+  ExamplePythonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.12
+      CodeUri: python/
+      Timeout: 10
+      MemorySize: 512
+      Layers:
+        - !Ref CircuitBreakerLayerX86
+      Environment:
+        Variables:
+          CIRCUITBREAKER_TABLE: !Ref CircuitBreakerTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+                - dynamodb:PutItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
+      Events:
+        Call:
+          Type: HttpApi
+          Properties:
+            Path: /python
+            Method: get
+        Status:
+          Type: HttpApi
+          Properties:
+            Path: /python/status
+            Method: get
+        Toggle:
+          Type: HttpApi
+          Properties:
+            Path: /python/toggle
+            Method: post
+
+Outputs:
+  LayerArnX86:
+    Description: Layer ARN for x86_64
+    Value: !Ref CircuitBreakerLayerX86
+  LayerArnArm64:
+    Description: Layer ARN for arm64
+    Value: !Ref CircuitBreakerLayerArm64
+  ApiEndpoint:
+    Description: Base API URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  HowToTest:
+    Description: Testing instructions
+    Value: !Sub >-
+      Node.js: GET /node, POST /node/toggle, GET /node/status.
+      Python: GET /python, POST /python/toggle, GET /python/status.
+      1. GET /node (should succeed)
+      2. POST /node/toggle (makes downstream unhealthy)
+      3. GET /node (repeat — failures, then circuit opens with fallback)
+      4. GET /node/status (see OPEN state)
+      5. POST /node/toggle (makes downstream healthy)
+      6. Wait 10 seconds, then GET /node (HALF -> CLOSED recovery)

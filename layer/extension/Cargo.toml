@@ -1,0 +1,30 @@
+[package]
+name = "circuitbreaker-lambda-extension"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json"] }
+# reqwest only calls localhost (Extensions API), so TLS is unused at runtime.
+# rustls-tls pulls in aws-lc-rs as a compile dependency (reqwest 0.12 doesn't
+# expose a public rustls-tls-ring feature). The AWS SDK uses ring via
+# aws-smithy-http-client. Two crypto backends in the binary is a known tradeoff
+# for compile simplicity.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# AWS SDK — use ring instead of aws-lc-rs for TLS.
+# aws-lc-rs compiles BoringSSL via cmake, adding ~25 min to cross builds.
+# ring is pure Rust/asm and compiles in seconds.
+aws-config = { version = "1", default-features = false, features = ["rt-tokio", "credentials-process", "sso"] }
+aws-sdk-dynamodb = { version = "1", default-features = false }
+aws-smithy-runtime = { version = "1", features = ["client", "rt-tokio", "tls-rustls"] }
+aws-smithy-http-client = { version = "1", features = ["rustls-ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std", "tls12"] }

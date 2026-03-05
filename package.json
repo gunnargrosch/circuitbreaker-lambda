@@ -1,10 +1,36 @@
 {
   "name": "circuitbreaker-lambda",
-  "version": "0.0.1",
-  "description": "Module for circuit breaker pattern in AWS Lambda",
-  "main": "./lib/circuitbreaker.js",
+  "version": "1.0.0",
+  "description": "Circuit breaker pattern for AWS Lambda with DynamoDB state management",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./middy": {
+      "types": "./dist/middy.d.ts",
+      "import": "./dist/middy.js",
+      "require": "./dist/middy.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -14,7 +40,11 @@
     "aws",
     "lambda",
     "circuitbreaker",
-    "fallback"
+    "circuit-breaker",
+    "fallback",
+    "resilience",
+    "dynamodb",
+    "serverless"
   ],
   "author": "Gunnar Grosch",
   "license": "MIT",
@@ -22,14 +52,21 @@
     "url": "https://github.com/gunnargrosch/circuitbreaker-lambda/issues"
   },
   "homepage": "https://github.com/gunnargrosch/circuitbreaker-lambda#readme",
-  "devDependencies": {
-    "aws-sdk": "^2.761.0",
-    "eslint": "^7.10.0",
-    "eslint-config-standard": "^14.1.1",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.1"
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0"
   },
-  "dependencies": {}
+  "optionalDependencies": {
+    "@middy/core": ">=4.0.0 <7.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
 }

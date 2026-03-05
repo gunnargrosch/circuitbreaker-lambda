@@ -8,6 +8,7 @@ use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
+use tokio::sync::oneshot;
 use tracing::{info, error};
 
 use crate::circuit::CircuitManager;
@@ -15,7 +16,12 @@ use crate::circuit::CircuitManager;
 /// Maximum allowed length for a circuit ID (DynamoDB partition key limit is 2048 bytes).
 const MAX_CIRCUIT_ID_LEN: usize = 256;
 
-pub async fn start_server(port: u16, manager: Arc<CircuitManager>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+/// Start the HTTP server. Sends `()` on `ready_tx` once the TCP listener is bound.
+pub async fn start_server(
+    port: u16,
+    manager: Arc<CircuitManager>,
+    ready_tx: oneshot::Sender<()>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = format!("127.0.0.1:{port}");
     let listener = TcpListener::bind(&addr).await?;
 
@@ -25,8 +31,8 @@ pub async fn start_server(port: u16, manager: Arc<CircuitManager>) -> Result<(),
         message = format!("listening on {addr}"),
     );
 
-    // Signal readiness
-    tokio::fs::write("/tmp/.circuitbreaker-lambda-ready", "").await?;
+    // Signal that the server is bound and accepting connections.
+    let _ = ready_tx.send(());
 
     loop {
         let (stream, _) = listener.accept().await?;

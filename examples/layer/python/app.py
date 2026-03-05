@@ -1,6 +1,5 @@
 import json
 import os
-import time
 import urllib.request
 
 import boto3
@@ -13,15 +12,6 @@ CIRCUITBREAKER_PORT = os.environ.get("CIRCUITBREAKER_PORT", "4243")
 CIRCUITBREAKER_URL = f"http://127.0.0.1:{CIRCUITBREAKER_PORT}"
 CIRCUIT_ID = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "default")
 
-extension_ready = False
-
-
-def wait_for_extension():
-    for _ in range(100):
-        if os.path.exists("/tmp/.circuitbreaker-lambda-ready"):
-            return
-        time.sleep(0.05)
-
 
 def call_downstream():
     result = table.get_item(Key={"id": CONTROL_KEY})
@@ -31,11 +21,6 @@ def call_downstream():
 
 
 def handler(event, context):
-    global extension_ready
-    if not extension_ready:
-        wait_for_extension()
-        extension_ready = True
-
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
     path = event.get("rawPath", "/")
 

@@ -60,13 +60,15 @@ async fn main() {
 
     let has_runtime_api = env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
 
-    // Register as a Lambda Extension
-    let register_handle = tokio::spawn(register_extension());
+    // Start the HTTP server and wait for it to bind before registering.
+    // Lambda won't invoke the function until registration completes, so by
+    // sequencing server bind -> register, the server is guaranteed to be
+    // ready when the handler runs. No readiness file needed.
+    let (ready_tx, ready_rx) = tokio::sync::oneshot::channel::<()>();
 
-    // Start HTTP server (blocks forever)
     let server_manager = Arc::clone(&manager);
-    let server_handle = tokio::spawn(async move {
-        if let Err(e) = server::start_server(port, server_manager).await {
+    tokio::spawn(async move {
+        if let Err(e) = server::start_server(port, server_manager, ready_tx).await {
             error!(
                 source = "circuitbreaker-lambda",
                 action = "server",
@@ -76,9 +78,19 @@ async fn main() {
         }
     });
 
-    // Wait for extension registration, then enter event loop
-    match register_handle.await {
-        Ok(Ok(ext_id)) => {
+    // Wait for the server to bind
+    if ready_rx.await.is_err() {
+        error!(
+            source = "circuitbreaker-lambda",
+            action = "startup",
+            message = "server failed to start",
+        );
+        std::process::exit(1);
+    }
+
+    // Now register — Lambda will hold INIT until this completes
+    match register_extension().await {
+        Ok(ext_id) => {
             info!(
                 source = "circuitbreaker-lambda",
                 action = "registered",
@@ -86,12 +98,12 @@ async fn main() {
             );
             extension_event_loop(&ext_id).await;
         }
-        _ => {
+        Err(e) => {
             if has_runtime_api {
                 error!(
                     source = "circuitbreaker-lambda",
                     action = "startup",
-                    message = "extension registration failed — Lambda may freeze this process unexpectedly",
+                    message = format!("extension registration failed: {e}"),
                 );
             } else {
                 info!(
@@ -99,8 +111,9 @@ async fn main() {
                     action = "startup",
                     message = "AWS_LAMBDA_RUNTIME_API not set — running as standalone server",
                 );
+                // Keep running for local development
+                std::future::pending::<()>().await;
             }
-            let _ = server_handle.await;
         }
     }
 }
@@ -140,8 +153,6 @@ async fn extension_event_loop(ext_id: &str) {
     };
     let url = format!("http://{runtime_api}/2020-01-01/extension/event/next");
 
-    // No timeout — the Extensions API long-polls and Lambda freezes the process
-    // between invocations. A timeout would cause spurious errors.
     let client = reqwest::Client::builder()
         .no_proxy()
         .build()
@@ -158,8 +169,6 @@ async fn extension_event_loop(ext_id: &str) {
             Ok(resp) => {
                 let status = resp.status();
                 if !status.is_success() {
-                    // 404/410 = extension deregistered, unrecoverable.
-                    // Other non-2xx = transient, log and retry.
                     if status.as_u16() == 404 || status.as_u16() == 410 {
                         error!(
                             source = "circuitbreaker-lambda",

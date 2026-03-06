@@ -1,0 +1,8 @@
+{
+  "name": "minimal-npm-example",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "circuitbreaker-lambda": "^1.0.0"
+  }
+}

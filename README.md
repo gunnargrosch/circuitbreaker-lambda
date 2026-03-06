@@ -437,6 +437,13 @@ To build the layer from source instead of downloading, see `layer/build.sh`.
 
 Same workflow as above, with Node.js endpoints at `/node`, `/node/status`, `/node/toggle` and Python at `/python`, `/python/status`, `/python/toggle`.
 
+### Minimal Examples
+
+If you just want to see the bare minimum code, without the toggle/status test infrastructure:
+
+- `examples/minimal-npm/` — npm package protecting a real API call (22 lines of handler code)
+- `examples/minimal-layer/` — Lambda Layer protecting the same API call (25 lines of handler code)
+
 ## Acknowledgments
 
 Inspired by Michael Nygard's book [Release It!](https://www.amazon.com/gp/product/0978739213), Martin Fowler's article on the [circuit breaker](https://martinfowler.com/bliki/CircuitBreaker.html), and Mark Michon's post on [building a Node.js circuit breaker](https://blog.bearer.sh/build-a-circuit-breaker-in-node-js/).

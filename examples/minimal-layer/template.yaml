@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  CircuitBreakerLayerArn:
+    Type: String
+    Description: ARN of the circuitbreaker-lambda layer (from aws lambda publish-layer-version)
+
+Resources:
+  CircuitBreakerTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  JokeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs24.x
+      Timeout: 10
+      MemorySize: 512
+      CodeUri: .
+      Layers:
+        - !Ref CircuitBreakerLayerArn
+      Environment:
+        Variables:
+          CIRCUITBREAKER_TABLE: !Ref CircuitBreakerTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt CircuitBreakerTable.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: get
+
+Outputs:
+  Endpoint:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"

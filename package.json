@@ -1,6 +1,6 @@
 {
   "name": "circuitbreaker-lambda",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Circuit breaker pattern for AWS Lambda with DynamoDB state management",
   "type": "module",
   "exports": {

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 (2026-03-09)
+
+### Changed
+
+- Renamed `HALF` circuit state to `HALF-OPEN` (canonical terminology from Nygard/Fowler)
+- DynamoDB now stores `HALF-OPEN` as the state value
+- Legacy `HALF` records are normalized to `HALF-OPEN` on read (no migration needed)
+- Added minimal examples (`examples/minimal-npm/`, `examples/minimal-layer/`) with a real API call
+- Simplified full examples with clear section separation
+- Removed readiness file — extension uses Lambda Extensions API INIT ordering instead
+- Updated cold start numbers in README
+
 ## 1.0.0 (2026-03-05)
 
 ### Added

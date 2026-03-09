@@ -1,4 +1,4 @@
-export type CircuitState = "CLOSED" | "OPEN" | "HALF";
+export type CircuitState = "CLOSED" | "OPEN" | "HALF-OPEN";
 
 export interface CircuitBreakerState {
   circuitState: CircuitState;

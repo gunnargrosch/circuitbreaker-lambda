@@ -8,7 +8,7 @@ pub enum CircuitState {
     Closed,
     #[serde(rename = "OPEN")]
     Open,
-    #[serde(rename = "HALF")]
+    #[serde(rename = "HALF-OPEN", alias = "HALF")]
     Half,
 }
 
@@ -17,7 +17,7 @@ impl std::fmt::Display for CircuitState {
         match self {
             CircuitState::Closed => write!(f, "CLOSED"),
             CircuitState::Open => write!(f, "OPEN"),
-            CircuitState::Half => write!(f, "HALF"),
+            CircuitState::Half => write!(f, "HALF-OPEN"),
         }
     }
 }
@@ -93,7 +93,7 @@ impl CircuitConfig {
 pub struct CheckResponse {
     pub allowed: bool,
     pub state: String,
-    /// Present when a state transition occurred (e.g., "OPEN -> HALF").
+    /// Present when a state transition occurred (e.g., "OPEN -> HALF-OPEN").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transition: Option<String>,
 }

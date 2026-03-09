@@ -99,7 +99,7 @@ export class CircuitBreaker {
 
   /**
    * Check whether the circuit allows a request.
-   * Loads state from the provider and transitions OPEN->HALF if timeout expired.
+   * Loads state from the provider and transitions OPEN->HALF-OPEN if timeout expired.
    * Returns true if the request should proceed, false if the circuit is OPEN.
    */
   async check(): Promise<boolean> {
@@ -114,7 +114,7 @@ export class CircuitBreaker {
           action: "transition",
           circuitId: this.circuitId,
           from: "OPEN",
-          to: "HALF",
+          to: "HALF-OPEN",
         });
         this.toHalf();
         await this.persistState();
@@ -136,13 +136,13 @@ export class CircuitBreaker {
     if (!this.stateLoaded) {
       throw new Error("CircuitBreaker: recordSuccess() called without a preceding check()");
     }
-    if (this.state.circuitState === "HALF") {
+    if (this.state.circuitState === "HALF-OPEN") {
       this.state.successCount++;
       if (this.state.successCount >= this.successThreshold) {
         log("info", {
           action: "transition",
           circuitId: this.circuitId,
-          from: "HALF",
+          from: "HALF-OPEN",
           to: "CLOSED",
         });
         this.toClosed();
@@ -160,11 +160,11 @@ export class CircuitBreaker {
     this.state.failureCount++;
     this.state.lastFailureTime = Date.now();
 
-    if (this.state.circuitState === "HALF") {
+    if (this.state.circuitState === "HALF-OPEN") {
       log("info", {
         action: "transition",
         circuitId: this.circuitId,
-        from: "HALF",
+        from: "HALF-OPEN",
         to: "OPEN",
         consecutiveOpens: this.state.consecutiveOpens + 1,
       });
@@ -189,7 +189,9 @@ export class CircuitBreaker {
     try {
       const record = await this.provider.getState(this.circuitId);
       if (record) {
-        this.state = { ...record };
+        // Normalize legacy "HALF" state written by older versions
+        const circuitState = (record.circuitState as string) === "HALF" ? "HALF-OPEN" : record.circuitState;
+        this.state = { ...record, circuitState };
       }
     } catch (err) {
       log("warn", { action: "getState", circuitId: this.circuitId, error: String(err) });
@@ -215,12 +217,12 @@ export class CircuitBreaker {
   }
 
   /**
-   * Exponential backoff only applies to consecutive HALF->OPEN transitions.
+   * Exponential backoff only applies to consecutive HALF-OPEN->OPEN transitions.
    * CLOSED->OPEN always uses the base timeout since the downstream service
    * may have recovered between independent failure episodes.
    */
   private toOpen(): void {
-    const wasHalf = this.state.circuitState === "HALF";
+    const wasHalf = this.state.circuitState === "HALF-OPEN";
     this.state.circuitState = "OPEN";
 
     if (wasHalf) {
@@ -244,7 +246,7 @@ export class CircuitBreaker {
   }
 
   private toHalf(): void {
-    this.state.circuitState = "HALF";
+    this.state.circuitState = "HALF-OPEN";
     this.state.successCount = 0;
   }
 }

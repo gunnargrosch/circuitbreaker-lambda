@@ -25,8 +25,10 @@ export class DynamoDBProvider implements StateProvider {
         }),
       );
       if (!result.Item) return undefined;
+      const rawState = result.Item.circuitState;
       return {
-        circuitState: result.Item.circuitState ?? "CLOSED",
+        // Normalize legacy "HALF" written by older versions
+        circuitState: (rawState === "HALF" ? "HALF-OPEN" : rawState) ?? "CLOSED",
         failureCount: result.Item.failureCount ?? 0,
         successCount: result.Item.successCount ?? 0,
         nextAttempt: result.Item.nextAttempt ?? 0,

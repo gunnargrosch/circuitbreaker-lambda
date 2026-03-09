@@ -22,7 +22,7 @@ graph LR
 
   subgraph Lambda["AWS Lambda"]
     Handler --> CB["Circuit Breaker"]
-    CB -- "CLOSED / HALF" --> Downstream["Downstream
+    CB -- "CLOSED / HALF-OPEN" --> Downstream["Downstream
     service"]
     CB -- "OPEN" --> Fallback["Fallback
     function"]
@@ -225,14 +225,14 @@ Both x86_64 and arm64 architectures are supported.
 | --- | --- |
 | `CLOSED` | Normal operation. All calls pass through. |
 | `OPEN` | Requests fail immediately (or use fallback). Timeout uses exponential backoff. |
-| `HALF` | A single probe request passes through. One failure immediately reopens. |
+| `HALF-OPEN` | A single probe request passes through. One failure immediately reopens. |
 
 ### State Transitions
 
 - **CLOSED -> OPEN**: `failureCount >= failureThreshold` (within `windowDuration`)
-- **OPEN -> HALF**: Timeout expires (`nextAttempt <= Date.now()`)
-- **HALF -> OPEN**: Any single failure (with exponential backoff on timeout)
-- **HALF -> CLOSED**: `successCount >= successThreshold`
+- **OPEN -> HALF-OPEN**: Timeout expires (`nextAttempt <= Date.now()`)
+- **HALF-OPEN -> OPEN**: Any single failure (with exponential backoff on timeout)
+- **HALF-OPEN -> CLOSED**: `successCount >= successThreshold`
 
 ## Configuration
 
@@ -241,7 +241,7 @@ Both the npm package and Lambda Layer support the same circuit breaker settings.
 | Setting | npm option | Layer env var | Default | Description |
 | --- | --- | --- | --- | --- |
 | Failure threshold | `failureThreshold` | `CIRCUITBREAKER_FAILURE_THRESHOLD` | `5` | Failed attempts before circuit opens |
-| Success threshold | `successThreshold` | `CIRCUITBREAKER_SUCCESS_THRESHOLD` | `2` | Successful attempts in HALF before closing |
+| Success threshold | `successThreshold` | `CIRCUITBREAKER_SUCCESS_THRESHOLD` | `2` | Successful attempts in HALF-OPEN before closing |
 | Timeout | `timeout` | `CIRCUITBREAKER_TIMEOUT_MS` | `10000` | Initial OPEN duration in ms |
 | Max timeout | `maxTimeout` | `CIRCUITBREAKER_MAX_TIMEOUT_MS` | `60000` | Max exponential backoff cap in ms |
 | Window duration | `windowDuration` | `CIRCUITBREAKER_WINDOW_DURATION_MS` | `60000` | Failure count reset window in ms |
@@ -269,7 +269,7 @@ Both the npm package and Lambda Layer support the same circuit breaker settings.
 | `CIRCUITBREAKER_TABLE` | Both | DynamoDB table name |
 | `CIRCUITBREAKER_PORT` | Layer | HTTP server port (default: `4243`) |
 | `CIRCUITBREAKER_FAILURE_THRESHOLD` | Layer | Failures before circuit opens (default: `5`) |
-| `CIRCUITBREAKER_SUCCESS_THRESHOLD` | Layer | Successes in HALF before closing (default: `2`) |
+| `CIRCUITBREAKER_SUCCESS_THRESHOLD` | Layer | Successes in HALF-OPEN before closing (default: `2`) |
 | `CIRCUITBREAKER_TIMEOUT_MS` | Layer | Initial OPEN timeout in ms (default: `10000`) |
 | `CIRCUITBREAKER_MAX_TIMEOUT_MS` | Layer | Max exponential backoff cap (default: `60000`) |
 | `CIRCUITBREAKER_WINDOW_DURATION_MS` | Layer | Failure count reset window (default: `60000`) |
@@ -291,7 +291,7 @@ All provider errors are logged as structured JSON warnings:
 
 Circuit breaker state in DynamoDB uses unconditional writes (last writer wins). This means concurrent Lambda instances can race when updating state:
 
-- **HALF state probe races:** If two instances both read HALF state and succeed, each increments `successCount` against its own in-memory copy. The second write overwrites the first, potentially delaying the CLOSED transition.
+- **HALF-OPEN state probe races:** If two instances both read HALF-OPEN state and succeed, each increments `successCount` against its own in-memory copy. The second write overwrites the first, potentially delaying the CLOSED transition.
 - **Failure count races:** Two instances both reading `failureCount: 4` and failing will both write `failureCount: 5` and open the circuit. This is safe (idempotent).
 
 In practice, these races are benign -- the circuit may be slightly slower to close than expected, but it will never miss an open. For stricter guarantees, implement a custom `StateProvider` with DynamoDB conditional writes or transactions.
@@ -303,12 +303,12 @@ State records use the following schema, shared between the npm package and the L
 | Field | Type | Description |
 | --- | --- | --- |
 | `id` | `string` | Partition key (circuit identifier) |
-| `circuitState` | `string` | `CLOSED`, `OPEN`, or `HALF` |
+| `circuitState` | `string` | `CLOSED`, `OPEN`, or `HALF-OPEN` |
 | `failureCount` | `number` | Current failure count |
-| `successCount` | `number` | Current success count (in HALF state) |
-| `nextAttempt` | `number` | Epoch ms when OPEN circuit transitions to HALF |
+| `successCount` | `number` | Current success count (in HALF-OPEN state) |
+| `nextAttempt` | `number` | Epoch ms when OPEN circuit transitions to HALF-OPEN |
 | `lastFailureTime` | `number` | Epoch ms of last failure (for window-based reset) |
-| `consecutiveOpens` | `number` | Consecutive HALF->OPEN transitions (for exponential backoff) |
+| `consecutiveOpens` | `number` | Consecutive HALF-OPEN->OPEN transitions (for exponential backoff) |
 | `stateTimestamp` | `number` | Epoch ms of last state write |
 | `schemaVersion` | `number` | Schema version (currently `1`) |
 
@@ -420,7 +420,7 @@ curl $API_URL/status
 curl -X POST $API_URL/toggle
 
 # 6. Wait 15 seconds for the timeout, then call again
-#    Circuit transitions HALF -> CLOSED as requests succeed
+#    Circuit transitions HALF-OPEN -> CLOSED as requests succeed
 curl $API_URL/
 curl $API_URL/
 ```

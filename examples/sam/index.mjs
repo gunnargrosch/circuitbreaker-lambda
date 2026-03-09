@@ -9,7 +9,7 @@ import { CircuitBreaker } from "circuitbreaker-lambda";
 // "CircuitBreaker state: OPEN" instead of calling the downstream.
 const circuitBreaker = new CircuitBreaker(callDownstream, {
   failureThreshold: 3,   // open after 3 failures
-  successThreshold: 2,   // close after 2 successes in HALF state
+  successThreshold: 2,   // close after 2 successes in HALF-OPEN state
   timeout: 15000,        // try again after 15s
 });
 

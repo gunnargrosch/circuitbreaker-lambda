@@ -75,4 +75,4 @@ Outputs:
       (makes downstream healthy again)
       6. Wait 15 seconds for the circuit timeout
       7. curl ${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
-      (circuit transitions HALF -> CLOSED as requests succeed)
+      (circuit transitions HALF-OPEN -> CLOSED as requests succeed)

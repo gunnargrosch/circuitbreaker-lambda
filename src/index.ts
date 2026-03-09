@@ -99,7 +99,7 @@ export class CircuitBreaker {
 
   /**
    * Check whether the circuit allows a request.
-   * Loads state from the provider and transitions OPEN->HALF if timeout expired.
+   * Loads state from the provider and transitions OPEN->HALF-OPEN if timeout expired.
    * Returns true if the request should proceed, false if the circuit is OPEN.
    */
   async check(): Promise<boolean> {
@@ -217,7 +217,7 @@ export class CircuitBreaker {
   }
 
   /**
-   * Exponential backoff only applies to consecutive HALF->OPEN transitions.
+   * Exponential backoff only applies to consecutive HALF-OPEN->OPEN transitions.
    * CLOSED->OPEN always uses the base timeout since the downstream service
    * may have recovered between independent failure episodes.
    */

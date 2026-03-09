@@ -37,10 +37,10 @@ describe("circuitBreakerMiddleware", () => {
     expect(result).toBeUndefined();
   });
 
-  it("should record success and transition HALF toward CLOSED", async () => {
+  it("should record success and transition HALF-OPEN toward CLOSED", async () => {
     await provider.saveState("test-circuit", {
       ...createInitialState(),
-      circuitState: "HALF",
+      circuitState: "HALF-OPEN",
       successCount: 0,
     });
     const mw = createMiddleware({ successThreshold: 2 });

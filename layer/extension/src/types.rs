@@ -93,7 +93,7 @@ impl CircuitConfig {
 pub struct CheckResponse {
     pub allowed: bool,
     pub state: String,
-    /// Present when a state transition occurred (e.g., "OPEN -> HALF").
+    /// Present when a state transition occurred (e.g., "OPEN -> HALF-OPEN").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transition: Option<String>,
 }

@@ -173,4 +173,4 @@ Outputs:
       3. GET /node (repeat — failures, then circuit opens with fallback)
       4. GET /node/status (see OPEN state)
       5. POST /node/toggle (makes downstream healthy)
-      6. Wait 10 seconds, then GET /node (HALF -> CLOSED recovery)
+      6. Wait 10 seconds, then GET /node (HALF-OPEN -> CLOSED recovery)

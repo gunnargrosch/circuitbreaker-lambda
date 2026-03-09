@@ -51,7 +51,7 @@ describe("circuitBreakerMiddleware", () => {
 
     const state = await provider.getState("test-circuit");
     expect(state?.successCount).toBe(1);
-    expect(state?.circuitState).toBe("HALF");
+    expect(state?.circuitState).toBe("HALF-OPEN");
   });
 
   it("should record failure and rethrow on onError", async () => {

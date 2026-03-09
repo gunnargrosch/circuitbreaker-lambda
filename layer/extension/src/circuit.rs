@@ -55,7 +55,7 @@ impl CircuitManager {
                 return CheckResponse {
                     allowed: true,
                     state: state.circuit_state.to_string(),
-                    transition: Some("OPEN -> HALF".to_string()),
+                    transition: Some("OPEN -> HALF-OPEN".to_string()),
                 };
             }
             return CheckResponse {
@@ -85,7 +85,7 @@ impl CircuitManager {
                 state.success_count = 0;
                 state.failure_count = 0;
                 state.consecutive_opens = 0;
-                transition = Some("HALF -> CLOSED".to_string());
+                transition = Some("HALF-OPEN -> CLOSED".to_string());
             }
         }
 
@@ -108,7 +108,7 @@ impl CircuitManager {
         state.last_failure_time = now_ms();
 
         if state.circuit_state == CircuitState::Half {
-            let from = "HALF";
+            let from = "HALF-OPEN";
             self.to_open(&mut state, true);
             transition = Some(format!("{from} -> OPEN"));
         } else if state.failure_count >= self.config.failure_threshold {

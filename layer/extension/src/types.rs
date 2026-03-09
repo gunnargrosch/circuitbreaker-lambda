@@ -8,7 +8,7 @@ pub enum CircuitState {
     Closed,
     #[serde(rename = "OPEN")]
     Open,
-    #[serde(rename = "HALF")]
+    #[serde(rename = "HALF-OPEN", alias = "HALF")]
     Half,
 }
 
@@ -17,7 +17,7 @@ impl std::fmt::Display for CircuitState {
         match self {
             CircuitState::Closed => write!(f, "CLOSED"),
             CircuitState::Open => write!(f, "OPEN"),
-            CircuitState::Half => write!(f, "HALF"),
+            CircuitState::Half => write!(f, "HALF-OPEN"),
         }
     }
 }

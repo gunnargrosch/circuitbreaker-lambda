@@ -73,6 +73,26 @@ describe("DynamoDBProvider", () => {
       expect(result?.schemaVersion).toBe(1);
     });
 
+    it("should normalize legacy HALF state to HALF-OPEN", async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          id: "my-circuit",
+          circuitState: "HALF",
+          failureCount: 0,
+          successCount: 1,
+          nextAttempt: 0,
+          lastFailureTime: 0,
+          consecutiveOpens: 0,
+          stateTimestamp: 1234567890,
+          schemaVersion: 1,
+        },
+      });
+
+      const result = await provider.getState("my-circuit");
+
+      expect(result?.circuitState).toBe("HALF-OPEN");
+    });
+
     it("should wrap DynamoDB errors with context", async () => {
       ddbMock.on(GetCommand).rejects(new Error("access denied"));
 

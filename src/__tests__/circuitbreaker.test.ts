@@ -118,7 +118,7 @@ describe("CircuitBreaker", () => {
       expect(request).not.toHaveBeenCalled();
     });
 
-    it("should transition from OPEN to HALF when timeout expires", async () => {
+    it("should transition from OPEN to HALF-OPEN when timeout expires", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
         circuitState: "OPEN",
@@ -132,10 +132,10 @@ describe("CircuitBreaker", () => {
       expect(request).toHaveBeenCalledOnce();
     });
 
-    it("should transition from HALF to CLOSED after success threshold", async () => {
+    it("should transition from HALF-OPEN to CLOSED after success threshold", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
         successCount: 1,
       });
       const request = vi.fn().mockResolvedValue("ok");
@@ -150,10 +150,10 @@ describe("CircuitBreaker", () => {
       expect(state?.consecutiveOpens).toBe(0);
     });
 
-    it("should immediately reopen on single failure in HALF state", async () => {
+    it("should immediately reopen on single failure in HALF-OPEN state", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
       });
       const request = vi.fn().mockRejectedValue(new Error("fail"));
       const cb = createBreaker(request);
@@ -187,7 +187,7 @@ describe("CircuitBreaker", () => {
       expect(allowed).toBe(false);
     });
 
-    it("should transition OPEN->HALF and return true when timeout expired", async () => {
+    it("should transition OPEN->HALF-OPEN and return true when timeout expired", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
         circuitState: "OPEN",
@@ -200,10 +200,10 @@ describe("CircuitBreaker", () => {
       expect(allowed).toBe(true);
     });
 
-    it("should record success and transition HALF->CLOSED", async () => {
+    it("should record success and transition HALF-OPEN->CLOSED", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
         successCount: 1,
       });
       const cb = createBreaker(null, { successThreshold: 2 });
@@ -215,10 +215,10 @@ describe("CircuitBreaker", () => {
       expect(state?.circuitState).toBe("CLOSED");
     });
 
-    it("should record failure and transition HALF->OPEN", async () => {
+    it("should record failure and transition HALF-OPEN->OPEN", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
       });
       const cb = createBreaker(null);
 
@@ -287,10 +287,10 @@ describe("CircuitBreaker", () => {
       expect(state?.nextAttempt).toBeLessThanOrEqual(before + 5100);
     });
 
-    it("should double timeout on consecutive reopens from HALF", async () => {
+    it("should double timeout on consecutive reopens from HALF-OPEN", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
         consecutiveOpens: 0,
       });
       const request = vi.fn().mockRejectedValue(new Error("fail"));
@@ -327,7 +327,7 @@ describe("CircuitBreaker", () => {
     it("should cap timeout at maxTimeout", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
         consecutiveOpens: 10,
       });
       const request = vi.fn().mockRejectedValue(new Error("fail"));
@@ -346,7 +346,7 @@ describe("CircuitBreaker", () => {
     it("should reset consecutiveOpens when circuit closes", async () => {
       await provider.saveState("test-circuit", {
         ...createInitialState(),
-        circuitState: "HALF",
+        circuitState: "HALF-OPEN",
         successCount: 1,
         consecutiveOpens: 3,
       });

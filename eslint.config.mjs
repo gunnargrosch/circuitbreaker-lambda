@@ -8,6 +8,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/", "example/", "*.config.*"],
+    ignores: ["dist/", "examples/", "*.config.*"],
   },
 );

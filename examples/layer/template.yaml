@@ -96,7 +96,6 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
-                - dynamodb:PutItem
               Resource: !GetAtt CircuitBreakerTable.Arn
       Events:
         Call:
@@ -134,7 +133,6 @@ Resources:
               Action:
                 - dynamodb:GetItem
                 - dynamodb:UpdateItem
-                - dynamodb:PutItem
               Resource: !GetAtt CircuitBreakerTable.Arn
       Events:
         Call:

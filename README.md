@@ -14,6 +14,8 @@ Circuit breaker for AWS Lambda with distributed state. Unlike in-memory circuit 
 
 Both paths share the same DynamoDB state schema -- functions using either approach share circuit state.
 
+Read the [blog post](https://dev.to/gunnargrosch/circuit-breakers-on-aws-lambda-why-in-memory-state-silently-fails-edh) for the motivation, design decisions, and a full walkthrough.
+
 ```mermaid
 graph LR
   Event["Event
